@@ -1,2 +1,3 @@
 data/stock.csv
 data/update_stock.csv
+__pycache__/
