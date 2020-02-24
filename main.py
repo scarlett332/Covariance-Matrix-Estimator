@@ -10,14 +10,24 @@ from estimator import Estimator
 
 
 def main():
+    #Config parameters
+    parser = argparse.ArgumentParser(description="Portfolio Optimization")
+
+    parser.add_argument("--market-csv-file", type=str, default="data/S&P500.csv",\
+                        help = "location of market information")
+    parser.add_argument("--stock-csv-file", type=str, default="data/stock_clean.csv",\
+                        help = "location of stock information")
+    parser.add_argument("--start-date", type=str, default="19720731",\
+                        help = "start date of calculation")
+    parser.add_argument("--est-type", type=int, default=0,\
+                help = "type of estimator: 0 -> Sample Covariance Estimator, 1-> Market Estimator, 2-> Shrinkage Estimator")
+    args = parser.parse_args()
+
     #Preprocess the data
-    market_csv_file = "data/S&P500.csv"
-    stock_csv_file = "data/stock_clean.csv"
-    start_date = "19720731"
-    df_market = pd.read_csv(market_csv_file)
-    df_stock = pd.read_csv(stock_csv_file)
+    df_market = pd.read_csv(args.market_csv_file)
+    df_stock = pd.read_csv(args.stock_csv_file)
     df_stock = df_stock.rename(columns = {df_stock.columns[0]:"date"})
-    result = df_stock["date"].isin([start_date])
+    result = df_stock["date"].isin([args.start_date])
     start_month = df_stock["date"][result].index.values[0]
 
     #Extract the date column
@@ -31,7 +41,6 @@ def main():
     est_types = ["Sample Covariance Estimator",\
                  "Market Estimator",\
                  "Shrinkage Estimator"]
-    est_type = 0
     monthly_returns = np.array([])
 
     for i in tqdm(range(start_month,384,12)):
@@ -46,7 +55,7 @@ def main():
         N = tmp_stock_info.shape[1]
         
         #Calculate corresponding estimators
-        cov_matrix = estimator.estimate(est_type = est_type,\
+        cov_matrix = estimator.estimate(est_type = args.est_type,\
                                          stock_info=tmp_stock_info,\
                                          market_info=tmp_market_info)
         #Calculate weight
@@ -60,7 +69,7 @@ def main():
     
     #Calculate the annual std by annual.std = monthly.std * sqrt(12)
     annual_std = monthly_returns.std()*np.sqrt(12)
-    print("Annual std: {:2f}% estimated by {}".format(100.*annual_std, est_types[est_type]))
+    print("Annual std: {:2f}% estimated by {}".format(100.*annual_std, est_types[args.est_type]))
 
 if __name__ == "__main__":
     main()
