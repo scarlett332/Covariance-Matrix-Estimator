@@ -64,17 +64,19 @@ class Estimator:
     
         x_bar = x.mean()
         y_bar = y.mean(axis=0)
-        F = self.__cal_market_est(y,x)
+        F = self.__cal_market_est(x,y)
         S = self.__cal_sample_cov_est(y)
     
         #Calculate the covariance between y,x
         yx = np.concatenate((y,x),axis=1)
         yx_cov = np.cov(yx,rowvar=False)
         s_x0 = np.expand_dims(yx_cov[-1,:-1],axis=1)
+
         #Calculate gamma
         gamma = ((F-S)**2).sum().sum()
     
         #Calculate pi
+        pi_mat = np.zeros((N,N))
         pi_mat = ((((y-y_bar)**2).T@((y-y_bar)**2)- 2*(y-y_bar).T@(y-y_bar)*S + T*S*S)/T)
         pi = pi_mat.sum().sum()
     
@@ -83,11 +85,13 @@ class Estimator:
         s_00 = yx_cov[-1,-1]
         for j in range(T):
             y_e = np.expand_dims(y[j,:]-y_bar,axis=1)
-            rou_mat+=((x[j]-x_bar)*(s_00*s_x0@y_e.T+s_00*y_e@s_x0.T-s_x0@s_x0.T*(x[j]-x_bar))*(y_e@y_e.T)/(s_00**2) - F*S)
+            rou_mat+=(((x[j]-x_bar)*(s_00*s_x0@y_e.T+s_00*y_e@s_x0.T-s_x0@s_x0.T*(x[j]-x_bar))*(y_e@y_e.T)/(s_00**2) - F*S))/T
         np.fill_diagonal(rou_mat,np.diag(pi_mat))
         rou =rou_mat.sum().sum()
+
         #Calculate the coefficient
         k = (pi-rou)/gamma
+
         #Get the estimator
         E = k/T * F +(T-k)/T* S
         return E
