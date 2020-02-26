@@ -80,18 +80,24 @@ class Estimator:
         pi_mat = ((((y-y_bar)**2).T@((y-y_bar)**2)- 2*(y-y_bar).T@(y-y_bar)*S + T*S*S)/T)
         pi = pi_mat.sum().sum()
     
-        #Calculate rou
+        #Calculate rou with vectorization
         rou_mat = np.zeros((N,N))
         s_00 = yx_cov[-1,-1]
-        for j in range(T):
-            y_e = np.expand_dims(y[j,:]-y_bar,axis=1)
-            rou_mat+=(((x[j]-x_bar)*(s_00*s_x0@y_e.T+s_00*y_e@s_x0.T-s_x0@s_x0.T*(x[j]-x_bar))*(y_e@y_e.T)/(s_00**2) - F*S))/T
+        s_x0_vec = np.repeat(s_x0,T,axis=1)
+        y_norm = y-y_bar
+        x_norm = x-x_bar
+        s1 =  (s_x0_vec*y_norm.T)@(x_norm*(y_norm**2))/s_00
+        s2 =  s1.T
+        s3 =  (x_norm.T*s_x0_vec*y_norm.T)@(x_norm*(s_x0_vec.T*y_norm))/(s_00**2)
+        rou_mat = (s1+s2-s3)/T
         np.fill_diagonal(rou_mat,np.diag(pi_mat))
         rou =rou_mat.sum().sum()
 
         #Calculate the coefficient
         k = (pi-rou)/gamma
 
+        print(rou)
+        print(k/T)
         #Get the estimator
         E = k/T * F +(T-k)/T* S
         return E
